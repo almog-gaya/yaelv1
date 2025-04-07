@@ -29,424 +29,509 @@ ChartJS.register(
   Filler
 );
 
+// Customer segment types
+type SegmentType = 
+  | 'closed_lost' 
+  | 'churned' 
+  | 'abandoned_cart' 
+  | 'trial_unconverted' 
+  | 'closed_won' 
+  | 'loyal_customers';
+
+// Insight category types
+type InsightCategoryType = 
+  | 'pain_trigger' 
+  | 'desired_outcome' 
+  | 'hesitation_risk' 
+  | 'expectation_gap' 
+  | 'value_impact' 
+  | 'delight_surprise' 
+  | 'suggestions_ideas';
+
+interface Quote {
+  text: string;
+  source: string;
+  segment: SegmentType;
+  product: string;
+  theme: string;
+  category: InsightCategoryType;
+}
+
+interface InsightData {
+  title: string;
+  percentage: number;
+  description: string;
+  quotes: Quote[];
+}
+
+interface MatrixCell {
+  segment: SegmentType;
+  product: string;
+  insightCount: number;
+}
+
 interface DashboardProps {
   data: {
-    pricingStructure: Record<string, number>;
-    contractLength: Record<string, number>;
-    taboolaExperience: string[];
-    primaryUseCase: Record<string, number>;
-    platformComparison: Record<string, number>;
-    targetingCapabilities: Record<string, number>;
-    trackingSetup: { yes: number; no: number };
+    segments: {
+      id: SegmentType;
+      name: string;
+      description: string;
+    }[];
+    products: {
+      id: string;
+      name: string;
+    }[];
+    interviewCount: number;
+    insightCategories: {
+      id: InsightCategoryType;
+      name: string;
+      description: string;
+      question: string;
+    }[];
+    insights: {
+      [segment: string]: {
+        [product: string]: {
+          [category: string]: InsightData[];
+        }
+      }
+    }
   };
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ data }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'detailed'>('overview');
-  const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
-
-  // Transform data for charts with enhanced styling
-  const pricingData = {
-    labels: Object.keys(data.pricingStructure),
-    datasets: [
-      {
-        data: Object.values(data.pricingStructure),
-        backgroundColor: [
-          'rgba(54, 162, 235, 0.8)',
-          'rgba(75, 192, 192, 0.8)',
-          'rgba(255, 206, 86, 0.8)',
-          'rgba(255, 99, 132, 0.8)',
-          'rgba(153, 102, 255, 0.8)'
-        ],
-        borderColor: [
-          'rgba(54, 162, 235, 1)',
-          'rgba(75, 192, 192, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(255, 99, 132, 1)',
-          'rgba(153, 102, 255, 1)'
-        ],
-        borderWidth: 2,
-        hoverOffset: 15
-      }
-    ]
-  };
-
-  const useCaseData = {
-    labels: Object.keys(data.primaryUseCase),
-    datasets: [
-      {
-        label: 'Number of Agencies',
-        data: Object.values(data.primaryUseCase),
-        backgroundColor: 'rgba(94, 114, 228, 0.8)',
-        borderColor: 'rgba(94, 114, 228, 1)',
-        borderWidth: 1,
-        borderRadius: 5,
-        hoverBackgroundColor: 'rgba(94, 114, 228, 1)'
-      }
-    ]
-  };
-
-  const platformComparisonData = {
-    labels: Object.keys(data.platformComparison),
-    datasets: [
-      {
-        label: 'Rating',
-        data: Object.values(data.platformComparison),
-        backgroundColor: 'rgba(45, 206, 137, 0.8)',
-        borderColor: 'rgba(45, 206, 137, 1)',
-        borderWidth: 1,
-        borderRadius: 5,
-        hoverBackgroundColor: 'rgba(45, 206, 137, 1)'
-      }
-    ]
-  };
-
-  // New radar chart for targeting capabilities
-  const targetingCapabilitiesData = {
-    labels: Object.keys(data.targetingCapabilities),
-    datasets: [
-      {
-        label: 'Capability Rating',
-        data: Object.values(data.targetingCapabilities),
-        backgroundColor: 'rgba(251, 99, 64, 0.2)',
-        borderColor: 'rgba(251, 99, 64, 1)',
-        pointBackgroundColor: 'rgba(251, 99, 64, 1)',
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: 'rgba(251, 99, 64, 1)',
-        borderWidth: 2
-      }
-    ]
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        labels: {
-          font: {
-            size: 12,
-            family: "'Inter', sans-serif"
-          },
-          usePointStyle: true,
-          padding: 20
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-        titleFont: {
-          size: 14,
-          family: "'Inter', sans-serif",
-          weight: 'bold' as const
-        },
-        bodyFont: {
-          size: 13,
-          family: "'Inter', sans-serif"
-        },
-        padding: 12,
-        cornerRadius: 8,
-        displayColors: true
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false
-        },
-        ticks: {
-          font: {
-            family: "'Inter', sans-serif"
-          }
-        }
-      },
-      y: {
-        grid: {
-          color: 'rgba(156, 163, 175, 0.15)'
-        },
-        ticks: {
-          font: {
-            family: "'Inter', sans-serif"
-          }
-        }
-      }
-    }
-  };
-
-  const pieOptions = {
-    ...chartOptions,
-    cutout: '60%',
-    plugins: {
-      ...chartOptions.plugins,
-      legend: {
-        ...chartOptions.plugins.legend,
-        position: 'right' as const
-      }
-    }
-  };
-
-  const radarOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      r: {
-        angleLines: {
-          color: 'rgba(156, 163, 175, 0.2)'
-        },
-        grid: {
-          color: 'rgba(156, 163, 175, 0.2)'
-        },
-        pointLabels: {
-          font: {
-            family: "'Inter', sans-serif",
-            size: 12
-          }
-        },
-        ticks: {
-          backdropColor: 'transparent',
-          font: {
-            size: 10
-          }
-        }
-      }
-    },
-    plugins: chartOptions.plugins
-  };
-
-  // Calculate metrics
-  const trackingSuccessRate = ((data.trackingSetup.yes / (data.trackingSetup.yes + data.trackingSetup.no)) * 100).toFixed(1);
-  const avgExperience = (data.taboolaExperience.reduce((acc, curr) => acc + parseInt(curr), 0) / data.taboolaExperience.length).toFixed(1);
-  const mostCommonContract = Object.entries(data.contractLength).sort((a, b) => b[1] - a[1])[0][0];
+  const [activeSegment, setActiveSegment] = useState<SegmentType | null>(null);
+  const [activeProduct, setActiveProduct] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<InsightCategoryType | null>(null);
+  const [expandedQuotes, setExpandedQuotes] = useState<string[]>([]);
   
-  // Convert top pricing structure to percentage
-  const topPricingKey = Object.entries(data.pricingStructure).sort((a, b) => b[1] - a[1])[0][0];
-  const topPricingPercentage = ((data.pricingStructure[topPricingKey] / Object.values(data.pricingStructure).reduce((sum, val) => sum + val, 0)) * 100).toFixed(1);
+  // Toggle a quote to expand/collapse
+  const toggleQuote = (quoteId: string) => {
+    if (expandedQuotes.includes(quoteId)) {
+      setExpandedQuotes(expandedQuotes.filter(id => id !== quoteId));
+    } else {
+      setExpandedQuotes([...expandedQuotes, quoteId]);
+    }
+  };
+  
+  // Copy quote text to clipboard
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // Could add a toast notification here
+  };
+  
+  // Generate matrix cell counts
+  const getMatrixCells = (): MatrixCell[] => {
+    const cells: MatrixCell[] = [];
+    
+    data.segments.forEach(segment => {
+      data.products.forEach(product => {
+        const segmentData = data.insights[segment.id];
+        let insightCount = 0;
+        
+        if (segmentData && segmentData[product.id]) {
+          Object.values(segmentData[product.id]).forEach(categoryInsights => {
+            insightCount += categoryInsights.reduce((total, insight) => total + insight.quotes.length, 0);
+          });
+        }
+        
+        cells.push({
+          segment: segment.id,
+          product: product.id,
+          insightCount
+        });
+      });
+    });
+    
+    return cells;
+  };
+  
+  // Go back to matrix view
+  const goBackToMatrix = () => {
+    setActiveSegment(null);
+    setActiveProduct(null);
+    setActiveCategory(null);
+  };
+  
+  // Handle cell click to drill down
+  const handleCellClick = (segment: SegmentType, product: string) => {
+    setActiveSegment(segment);
+    setActiveProduct(product);
+  };
 
-  const metrics = [
-    { 
-      title: 'Conversion Tracking',
-      value: `${trackingSuccessRate}%`, 
-      subtitle: 'Success Rate',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
-      color: 'bg-indigo-500'
-    },
-    { 
-      title: 'Average Experience',
-      value: `${avgExperience}`, 
-      subtitle: 'Years',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      color: 'bg-emerald-500'
-    },
-    { 
-      title: 'Top Pricing Model',
-      value: `${topPricingPercentage}%`, 
-      subtitle: topPricingKey,
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      color: 'bg-blue-500'
-    },
-    { 
-      title: 'Contract Length',
-      value: mostCommonContract, 
-      subtitle: 'Most Common',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      ),
-      color: 'bg-amber-500'
-    },
-  ];
+  // Get segment label
+  const getSegmentLabel = (segmentId: SegmentType) => {
+    return data.segments.find(s => s.id === segmentId)?.name || segmentId;
+  };
+  
+  // Get product label
+  const getProductLabel = (productId: string) => {
+    return data.products.find(p => p.id === productId)?.name || productId;
+  };
+  
+  // Get category label
+  const getCategoryLabel = (categoryId: InsightCategoryType) => {
+    return data.insightCategories.find(c => c.id === categoryId)?.name || categoryId;
+  };
+  
+  // Get category description
+  const getCategoryDescription = (categoryId: InsightCategoryType) => {
+    return data.insightCategories.find(c => c.id === categoryId)?.description || '';
+  };
+  
+  // Get category question
+  const getCategoryQuestion = (categoryId: InsightCategoryType) => {
+    return data.insightCategories.find(c => c.id === categoryId)?.question || '';
+  };
+  
+  // Get active segment data
+  const getActiveSegmentData = () => {
+    if (!activeSegment || !activeProduct) return null;
+    return data.insights[activeSegment]?.[activeProduct] || null;
+  };
+  
+  // Get active category data
+  const getActiveCategoryData = () => {
+    if (!activeSegment || !activeProduct || !activeCategory) return null;
+    return data.insights[activeSegment]?.[activeProduct]?.[activeCategory] || null;
+  };
+  
+  // Color schemes
+  const colors = {
+    primary: 'rgb(14, 165, 233)',  // Sky blue
+    secondary: 'rgb(236, 72, 153)', // Pink
+    success: 'rgb(34, 197, 94)',    // Green
+    warning: 'rgb(249, 115, 22)',   // Orange
+    purple: 'rgb(168, 85, 247)',    // Purple
+    yellow: 'rgb(234, 179, 8)',     // Yellow
+    slate: 'rgb(100, 116, 139)',    // Slate
+  };
+  
+  // Get segment badge color
+  const getSegmentColor = (segment: SegmentType) => {
+    switch (segment) {
+      case 'closed_won': return 'bg-green-100 text-green-600 border border-green-200';
+      case 'loyal_customers': return 'bg-blue-100 text-blue-600 border border-blue-200';
+      case 'closed_lost': return 'bg-red-100 text-red-600 border border-red-200';
+      case 'churned': return 'bg-orange-100 text-orange-600 border border-orange-200';
+      case 'abandoned_cart': return 'bg-yellow-100 text-yellow-600 border border-yellow-200';
+      case 'trial_unconverted': return 'bg-purple-100 text-purple-600 border border-purple-200';
+      default: return 'bg-slate-100 text-slate-600 border border-slate-200';
+    }
+  };
 
+  // Get category badge color
+  const getCategoryColor = (category: InsightCategoryType) => {
+    switch (category) {
+      case 'pain_trigger': return 'bg-red-100 text-red-600 border border-red-200';
+      case 'desired_outcome': return 'bg-blue-100 text-blue-600 border border-blue-200';
+      case 'hesitation_risk': return 'bg-yellow-100 text-yellow-600 border border-yellow-200';
+      case 'expectation_gap': return 'bg-orange-100 text-orange-600 border border-orange-200';
+      case 'value_impact': return 'bg-green-100 text-green-600 border border-green-200';
+      case 'delight_surprise': return 'bg-purple-100 text-purple-600 border border-purple-200';
+      case 'suggestions_ideas': return 'bg-cyan-100 text-cyan-600 border border-cyan-200';
+      default: return 'bg-slate-100 text-slate-600 border border-slate-200';
+    }
+  };
+  
+  // Theme badge colors for consistent styling
+  const getThemeColor = (index: number) => {
+    const themeColors = [
+      'bg-sky-100 text-sky-600 border border-sky-200',
+      'bg-green-100 text-green-600 border border-green-200',
+      'bg-purple-100 text-purple-600 border border-purple-200',
+      'bg-amber-100 text-amber-600 border border-amber-200',
+      'bg-pink-100 text-pink-600 border border-pink-200',
+      'bg-cyan-100 text-cyan-600 border border-cyan-200'
+    ];
+    return themeColors[index % themeColors.length];
+  };
+
+  // Helper to get cell background
+  const getCellBackground = (insightCount: number) => {
+    if (insightCount === 0) return 'bg-slate-50';
+    if (insightCount < 5) return 'bg-sky-50';
+    if (insightCount < 10) return 'bg-sky-100';
+    return 'bg-sky-200';
+  };
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
+    <div className="min-h-screen bg-white text-slate-800 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center">
-          <div>
-            <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
-              Agency Insights Dashboard
-            </h1>
-            <p className="text-gray-400">
-              Comprehensive overview of agency partnerships and performance metrics
-            </p>
-          </div>
-          
-          {/* Toggle Tabs */}
-          <div className="mt-4 md:mt-0 bg-gray-800 p-1 rounded-lg inline-flex">
-            <button
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeTab === 'overview' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              Overview
-            </button>
-            <button
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeTab === 'detailed' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
-              onClick={() => setActiveTab('detailed')}
-            >
-              Detailed Analysis
-            </button>
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div>
+              <h1 className="text-3xl font-bold mb-2 text-pink-500">
+                Interview Insights Dashboard
+              </h1>
+              <p className="text-sky-600">
+                {data.interviewCount} interviews across {data.segments.length} segments and {data.products.length} products
+              </p>
+            </div>
+            
+            {activeSegment && activeProduct && (
+              <button
+                onClick={goBackToMatrix}
+                className="mt-4 md:mt-0 flex items-center text-sky-600 hover:text-sky-800"
+              >
+                <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Matrix View
+              </button>
+            )}
           </div>
         </div>
         
-        {/* Metrics Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metrics.map((metric, index) => (
-            <div
-              key={index}
-              className={`relative overflow-hidden bg-gray-800 rounded-xl shadow-lg p-6 transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${hoveredMetric === metric.title ? 'ring-2 ring-opacity-60 ring-' + metric.color.substring(3) : ''}`}
-              onMouseEnter={() => setHoveredMetric(metric.title)}
-              onMouseLeave={() => setHoveredMetric(null)}
-            >
-              <div className="relative z-10">
-                <div className={`absolute -right-3 -top-3 w-20 h-20 rounded-full ${metric.color} opacity-10`}></div>
-                <div className={`inline-flex items-center justify-center p-3 rounded-lg ${metric.color} bg-opacity-10 mb-4`}>
-                  <div className={`text-${metric.color.substring(3)}`}>
-                    {metric.icon}
-                  </div>
-                </div>
-                <h3 className="text-lg font-medium text-gray-200">{metric.title}</h3>
-                <div className="flex items-end mt-2">
-                  <span className="text-3xl font-bold">{metric.value}</span>
-                  <span className="text-sm text-gray-400 ml-2 mb-1">{metric.subtitle}</span>
-                </div>
-              </div>
-              <div className={`absolute bottom-0 left-0 h-1 ${metric.color}`} style={{width: hoveredMetric === metric.title ? '100%' : '30%', transition: 'width 0.3s ease'}}></div>
-            </div>
-          ))}
-        </div>
-        
-        {activeTab === 'overview' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Pricing Structure */}
-            <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-transform duration-300 hover:shadow-xl transform hover:scale-[1.02]">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-1 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                  </svg>
-                  Pricing Structure Distribution
-                </h2>
-                <p className="text-sm text-gray-400 mb-4">Breakdown of pricing models across agencies</p>
-              </div>
-              <div className="px-6 pb-6">
-                <div className="h-80">
-                  <Pie data={pricingData} options={pieOptions} />
-                </div>
-              </div>
-            </div>
-
-            {/* Primary Use Case */}
-            <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-transform duration-300 hover:shadow-xl transform hover:scale-[1.02]">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-1 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Primary Use Cases
-                </h2>
-                <p className="text-sm text-gray-400 mb-4">Main application scenarios for different agencies</p>
-              </div>
-              <div className="px-6 pb-6">
-                <div className="h-80">
-                  <Bar data={useCaseData} options={chartOptions} />
-                </div>
-              </div>
-            </div>
+        {/* Matrix Layout View */}
+        {!activeSegment && !activeProduct && (
+          <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto shadow-lg">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead>
+                <tr>
+                  <th scope="col" className="py-3 px-4 bg-slate-50 text-left text-sm font-semibold text-slate-600 tracking-wider border-b border-r border-slate-200">
+                    Segment ↓ / Product →
+                  </th>
+                  {data.products.map(product => (
+                    <th key={product.id} scope="col" className="py-3 px-4 bg-slate-50 text-center text-sm font-semibold text-slate-600 tracking-wider border-b border-slate-200">
+                      {product.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-200">
+                {data.segments.map(segment => (
+                  <tr key={segment.id} className="hover:bg-slate-50">
+                    <th scope="row" className="py-4 px-4 text-sm font-medium text-slate-700 border-r border-slate-200 max-w-xs">
+                      <div className="font-bold">{segment.name}</div>
+                      <div className="text-xs text-slate-500 mt-1">{segment.description}</div>
+                    </th>
+                    {data.products.map(product => {
+                      const cell = getMatrixCells().find(
+                        c => c.segment === segment.id && c.product === product.id
+                      );
+                      const insightCount = cell?.insightCount || 0;
+                      
+                      return (
+                        <td 
+                          key={`${segment.id}-${product.id}`}
+                          className={`py-4 px-6 text-sm text-center cursor-pointer transition-colors duration-150 hover:bg-sky-100 ${getCellBackground(insightCount)}`}
+                          onClick={() => handleCellClick(segment.id, product.id)}
+                        >
+                          {insightCount > 0 ? (
+                            <div>
+                              <div className="font-bold text-lg text-sky-600">{insightCount}</div>
+                              <div className="text-xs text-slate-500">insights</div>
+                              <div className="mt-2 text-sky-600 text-xs">View insights</div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">No data</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Platform Comparison */}
-            <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-transform duration-300 hover:shadow-xl transform hover:scale-[1.02]">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-1 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Platform Comparison Ratings
-                </h2>
-                <p className="text-sm text-gray-400 mb-4">How our platform compares to competitors</p>
+        )}
+        
+        {/* Segment & Product Detail View */}
+        {activeSegment && activeProduct && !activeCategory && (
+          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-lg">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <span className={`text-sm px-3 py-1 rounded-full ${getSegmentColor(activeSegment)} mr-2`}>
+                  {getSegmentLabel(activeSegment)}
+                </span>
+                <span className="text-lg font-semibold text-slate-700">+</span>
+                <span className="text-sm px-3 py-1 rounded-full bg-sky-100 text-sky-600 border border-sky-200 ml-2">
+                  {getProductLabel(activeProduct)}
+                </span>
               </div>
-              <div className="px-6 pb-6">
-                <div className="h-80">
-                  <Bar data={platformComparisonData} options={chartOptions} />
-                </div>
-              </div>
-            </div>
-
-            {/* Targeting Capabilities */}
-            <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-transform duration-300 hover:shadow-xl transform hover:scale-[1.02]">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-1 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                  Targeting Capabilities
-                </h2>
-                <p className="text-sm text-gray-400 mb-4">Assessment of targeting feature effectiveness</p>
-              </div>
-              <div className="px-6 pb-6">
-                <div className="h-80">
-                  <Radar data={targetingCapabilitiesData} options={radarOptions} />
-                </div>
+              
+              <h2 className="text-2xl font-bold mb-1 text-sky-600">
+                Insight Categories
+              </h2>
+              <div className="h-1 w-16 bg-sky-500 mb-6"></div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.insightCategories.map(category => {
+                  const hasData = !!data.insights[activeSegment]?.[activeProduct]?.[category.id]?.length;
+                  const insightCount = data.insights[activeSegment]?.[activeProduct]?.[category.id]?.reduce(
+                    (total, insight) => total + insight.quotes.length, 0
+                  ) || 0;
+                  
+                  return (
+                    <div 
+                      key={category.id}
+                      onClick={() => hasData && setActiveCategory(category.id)}
+                      className={`${hasData ? 'cursor-pointer hover:shadow-lg transform hover:-translate-y-1' : 'opacity-50 cursor-not-allowed'} 
+                        bg-white rounded-lg p-5 shadow-md border border-slate-200 transition-all duration-200`}
+                    >
+                      <div className="flex items-center mb-3">
+                        <span className={`w-2 h-2 rounded-full mr-2 ${getCategoryColor(category.id).replace('bg-', '').split(' ')[0]}`}></span>
+                        <h3 className="font-semibold text-lg text-slate-800">{category.name}</h3>
+                      </div>
+                      <p className="text-slate-600 text-sm mb-3">{category.description}</p>
+                      <p className="text-slate-500 text-sm italic mb-4">"{category.question}"</p>
+                      
+                      {hasData ? (
+                        <div className="flex justify-between items-center mt-auto">
+                          <span className="text-sm font-medium text-sky-600">{insightCount} insights</span>
+                          <span className="text-sky-500 flex items-center">
+                            View details
+                            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex justify-center items-center mt-auto">
+                          <span className="text-sm text-slate-400">No data available</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
         )}
         
-        {/* Experience Summary Card */}
-        <div className="mt-6 bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-          <div className="flex flex-col md:flex-row">
-            <div className="p-6 md:w-1/3 bg-gradient-to-br from-gray-800 to-gray-900">
-              <h2 className="text-xl font-semibold mb-6 flex items-center">
-                <svg className="w-5 h-5 mr-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Taboola Experience Summary
-              </h2>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                A comprehensive analysis of agency experience with the platform, including time using the platform and contract preferences.
-              </p>
-            </div>
-            
-            <div className="flex-1 p-6 flex items-center border-t md:border-t-0 md:border-l border-gray-700">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-                <div className="flex flex-col">
-                  <div className="text-gray-400 text-sm mb-2">Average Experience Duration</div>
-                  <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">
-                    {avgExperience} <span className="text-xl text-gray-400">years</span>
-                  </div>
-                  <div className="mt-2 text-gray-400 text-sm">
-                    Based on {data.taboolaExperience.length} agencies
-                  </div>
-                </div>
+        {/* Category Detail View */}
+        {activeSegment && activeProduct && activeCategory && (
+          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-lg">
+            <div className="p-6">
+              <div className="flex items-center mb-2">
+                <button 
+                  onClick={() => setActiveCategory(null)}
+                  className="text-sky-600 hover:text-sky-800 flex items-center mr-4"
+                >
+                  <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to Categories
+                </button>
                 
-                <div className="flex flex-col">
-                  <div className="text-gray-400 text-sm mb-2">Most Common Contract Length</div>
-                  <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-300">
-                    {mostCommonContract}
-                  </div>
-                  <div className="mt-2 text-gray-400 text-sm">
-                    Preferred by {data.contractLength[mostCommonContract]} agencies
-                  </div>
-                </div>
+                <span className={`text-sm px-3 py-1 rounded-full ${getSegmentColor(activeSegment)} mr-2`}>
+                  {getSegmentLabel(activeSegment)}
+                </span>
+                <span className="text-sm px-3 py-1 rounded-full bg-sky-100 text-sky-600 border border-sky-200 mx-2">
+                  {getProductLabel(activeProduct)}
+                </span>
+                <span className={`text-sm px-3 py-1 rounded-full ${getCategoryColor(activeCategory)} ml-2`}>
+                  {getCategoryLabel(activeCategory)}
+                </span>
               </div>
+              
+              <h2 className="text-2xl font-bold mt-4 mb-1 text-sky-600">
+                {getCategoryLabel(activeCategory)}
+              </h2>
+              <p className="text-slate-600 mb-2">{getCategoryDescription(activeCategory)}</p>
+              <p className="text-slate-700 italic mb-6">"{getCategoryQuestion(activeCategory)}"</p>
+              
+              <div className="h-1 w-16 bg-sky-500 mb-6"></div>
+              
+              {/* Insight Cards */}
+              {getActiveCategoryData() && getActiveCategoryData()!.length > 0 ? (
+                <div className="space-y-6">
+                  {getActiveCategoryData()!.map((insight, insightIndex) => (
+                    <div 
+                      key={insightIndex} 
+                      className="bg-slate-50 rounded-lg p-4 shadow-md"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-lg flex items-center text-slate-800">
+                          <span className="inline-block w-3 h-3 rounded-full mr-2" 
+                            style={{backgroundColor: 
+                              insightIndex % 6 === 0 ? colors.primary :
+                              insightIndex % 6 === 1 ? colors.secondary :
+                              insightIndex % 6 === 2 ? colors.success :
+                              insightIndex % 6 === 3 ? colors.warning :
+                              insightIndex % 6 === 4 ? colors.purple :
+                              colors.yellow
+                            }}></span>
+                          {insight.title}
+                        </h3>
+                        {insight.percentage > 0 && (
+                          <span className="text-xl font-bold text-sky-600">{insight.percentage}%</span>
+                        )}
+                      </div>
+                      <p className="text-slate-600 text-sm mb-4">{insight.description}</p>
+                      
+                      {/* Quotes */}
+                      <div className="mt-3">
+                        <h4 className="text-sm font-medium text-pink-600 mb-3">
+                          Quotes ({insight.quotes.length})
+                        </h4>
+                        <div className="space-y-3">
+                          {insight.quotes.slice(0, expandedQuotes.includes(`insight-${insightIndex}`) ? undefined : 3).map((quote, quoteIndex) => (
+                            <div 
+                              key={quoteIndex} 
+                              className="bg-white rounded-md p-3 relative border border-slate-200"
+                            >
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${getSegmentColor(quote.segment)}`}>
+                                  {getSegmentLabel(quote.segment)}
+                                </span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-600 border border-sky-200">
+                                  {getProductLabel(quote.product)}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${getThemeColor(quoteIndex)}`}>
+                                  {quote.theme}
+                                </span>
+                              </div>
+                              <p className="text-sm italic text-slate-700">"{quote.text}"</p>
+                              <p className="text-xs text-slate-500 mt-1">— {quote.source}</p>
+                              <button 
+                                className="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
+                                onClick={() => copyToClipboard(quote.text)}
+                                title="Copy to clipboard"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                          
+                          {insight.quotes.length > 3 && (
+                            <button
+                              className="text-sm text-pink-600 hover:text-pink-700 flex items-center gap-1 mt-2"
+                              onClick={() => toggleQuote(`insight-${insightIndex}`)}
+                            >
+                              {expandedQuotes.includes(`insight-${insightIndex}`) ? (
+                                <>
+                                  Show Less
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                  </svg>
+                                </>
+                              ) : (
+                                <>
+                                  Show All ({insight.quotes.length})
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-slate-50 p-8 text-center rounded-lg">
+                  <p className="text-slate-500">No insights available for this category.</p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
