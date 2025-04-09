@@ -1,13 +1,12 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Link from 'next/link';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Interview Insights Dashboard',
-  description: 'A dynamic dashboard for visualizing interview insights and quotes',
+  title: 'LaFlore Customer Insights',
+  description: 'A dynamic dashboard for visualizing LaFlore customer insights and quotes',
 };
 
 export default function RootLayout({
@@ -18,20 +17,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <nav className="bg-gray-900 text-white p-4">
+        <header className="bg-gradient-to-r from-indigo-800 to-indigo-600 text-white p-4 shadow-md">
           <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold">Ripples Insights</h1>
-            <div className="space-x-4">
-              <Link href="/" className="hover:text-indigo-300 transition-colors">
-                Home
-              </Link>
-              <Link href="/dashboard" className="hover:text-indigo-300 transition-colors">
-                Dashboard
-              </Link>
+            <div className="flex items-center">
+              <span className="text-2xl mr-2">👜</span>
+              <h1 className="text-xl font-bold">LaFlore Insights</h1>
             </div>
           </div>
-        </nav>
-        {children}
+        </header>
+        <main className="min-h-screen">
+          {children}
+        </main>
+        <footer className="bg-gray-100 py-6 mt-10">
+          <div className="container mx-auto text-center text-gray-600">
+            <p>© {new Date().getFullYear()} LaFlore Customer Insights</p>
+          </div>
+        </footer>
       </body>
     </html>
   );
